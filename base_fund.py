@@ -41,7 +41,10 @@ red = '\033[31m'
 green = '\033[32m'
 default = '\033[0m'
 blue = '\033[34m'
-statistics_table = PrettyTable([blue+'基金名称'+default,blue+'成本'+default,blue+'金额'+default,blue+'今日净值'+default,blue+'涨跌幅度'+default,blue+'今日收益'+default,blue+'总收益'+default,blue+'盈亏率'+default,blue+' 近期涨跌,'+six_days_ago+'到'+yesterday+default],align='l',width=100)
+statistics_table = PrettyTable([blue+'基金名称'+default,blue+'成本'+default,blue+'金额'+default,blue+'今日净值'+default,blue+'涨跌幅度'+default,blue+'今日收益'+default,blue+'总收 益'+default,blue+'盈亏率'+default,blue+' 近期涨跌,'+six_days_ago+'到'+yesterday+default],align='l',width=100,reversesort=True)
+statistics_table.align[blue+'成本'+default]='l'
+statistics_table.sortby = blue+'成本'+default
+#statistics_table.sortby = blue+'涨跌幅度'+default
 statistics_table.set_style(PLAIN_COLUMNS)
 logging.basicConfig(filename='fund.log',format='%(asctime)s %(levelname)s: %(message)s',level=20,filemode='a',datefmt='%Y-%m-%d %H:%M:%S')
 #requests和elasticsearch模块请求日志禁用
@@ -89,10 +92,12 @@ def get_common_fund_info():
     headers = {'content-type': 'application/json',
                'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:22.0) Gecko/20100101 Firefox/22.0',
                'Connection':'close'}
-    # requests 请求重试三次，三次之后还失败，直接返回获取XX超时，程序退出,同时设定每个请求时间为5秒
+    # requests 请求重试三次，三次之后还失败，直接返回获取XX超时，程序退出,同时设定每个请求时间为3秒
     trytimes = 3
     for i in range(trytimes):
         try:
+            common_fund_info_r = requests.session()
+            common_fund_info_r.keep_alive=False
             common_fund_info_r = requests.get(url, headers=headers,timeout=3)
             # 返回指定解码方式
             common_fund_info_r.content.decode("utf-8")
@@ -101,6 +106,7 @@ def get_common_fund_info():
             common_fund_info_content = re.findall(pattern, common_fund_info_content)
             return (common_fund_info_content)
         except requests.exceptions.RequestException as e:
+            print (repr(e))
             print ("获取" + common_fund_code + "信息超时！正在重试第" + str(i+1) + "次")
     print ("获取" + common_fund_code + "信息失败！请稍后重试!")
     exit(0)
@@ -237,18 +243,12 @@ def get_change_recent_days(code):
     return rise_fall_str
 
 if __name__ == '__main__':
-    #普通基金数组
-    values = input("请输入要查询的人，目前有（M或X）：")
-    if values == 'm':
-        #更改数组 [["基金代码",成本,份额]，[],[],[],[]...]，例如： [["001632",3.6019,119.04],["161725",1.2207,2048.01]]
-        my_fund = [["001344", 1.6140, 3774.13], ["161725", 1.2424, 2926.01],["161130", 2.0492, 1244.36],["001668", 2.9180, 1096.64], ["004813", 3.3415, 439.00],
-                   ["001156", 2.4982, 503.79],["519674", 7.2970, 157.60], ["004854", 1.3635, 480.77],["164906", 1.0695, 561.03], ["001410", 3.5506, 126.74],["540008", 3.3189, 139.35],
-                   ["006257",2.1562,162.32]]
-    elif values == 'x':
-        my_fund = [["001632",3.6019,119.04],["161725",1.2207,2048.01],["002593",3.0489,877.56],["001344",1.6169,1207.30],["519674",7.3382,470.42]]
-    else :
-        print ("输入有误！")
-        exit(0)
+    #更改数组 my_fund = [["基金代码",成本,份额]，[],[],[],[]...]，例如： [["001632",3.6019,119.04],["161725",1.2207,2048.01]]["001344", 1.5383, 4927.45],
+    my_fund = [["001344", 1.5383, 4927.45], ["001668", 2.9180, 1096.64], ["519674", 6.2080, 494.52],
+               ["161130", 2.0492, 1244.36], ["004813", 3.2482, 341.25],
+               ["009484", 1.0547, 10559.09], ["005733", 0.9910, 756.79], ["001156", 2.2470, 446.93],
+               ["540008", 3.7152, 129.53], ["006257", 1.9878, 254.68], ["164906", 1.0690, 958.86],
+               ["161725", 1.2377, 3543.06]]
     logging.info("开始计算基金，本次计算的数组是："+str(my_fund))
     print ("共有" + str(len(my_fund)) + "支基金，统计日期：" + time.strftime('%Y-%m-%d %H:%M',time.localtime(time.time())))
     for i in my_fund:
@@ -279,5 +279,3 @@ if __name__ == '__main__':
         print ("今日涨幅3%以上的基金有：")
         for hight_fund in hight_fund_list:
             print ('  '+hight_fund)
-
-
