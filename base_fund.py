@@ -277,5 +277,3 @@ if __name__ == '__main__':
         print ("今日涨幅3%以上的基金有：")
         for hight_fund in hight_fund_list:
             print ('  '+hight_fund)
-
-
